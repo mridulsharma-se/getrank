@@ -1,0 +1,5 @@
+INFO 2026-03-09 13:12:23,512 Watching for file changes with StatReloader
+INFO 2026-03-09 13:12:26,200 ✅ Successfully loaded model from /Users/mridulsharma/Documents/vs_code/projects/getrank/backend/ml/rating_model.txt
+INFO 2026-03-09 13:12:29,436 "GET /api/codeforces/ratingHistory/?handle=tourist HTTP/1.1" 200 50423
+INFO 2026-03-09 13:12:42,993 "GET /api/codeforces/ratingHistory/?handle=tourist HTTP/1.1" 200 50423
+INFO 2026-03-09 13:17:33,720 "GET /api/codeforces/userInfo/?handles=tourist HTTP/1.1" 200 507

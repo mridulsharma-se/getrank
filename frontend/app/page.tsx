@@ -1,20 +1,52 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { AlertCircle } from "lucide-react"
 import { HandleInput } from "@/components/handle-input"
 import { Loader } from "@/components/loader"
 import { RatingCard } from "@/components/rating-card"
 import { ConfidenceBar } from "@/components/confidence-bar"
 import { RatingTrendChart } from "@/components/rating-trend-chart"
 import { StatsRow } from "@/components/stats-row"
-import { estimateRating, type RatingData } from "@/services/api"
+import { estimateRating, checkBackendHealth, type RatingData } from "@/services/api"
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [ratingData, setRatingData] = useState<RatingData | null>(null)
   const [error, setError] = useState("")
+  const [backendError, setBackendError] = useState<string | null>(null)
+
+  // Check backend health on component mount
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const health = await checkBackendHealth()
+        if (health.status !== "ok") {
+          setBackendError("Backend API is not ready. ML model may not be loaded.")
+        } else {
+          setBackendError(null)
+        }
+      } catch (err) {
+        setBackendError(
+          "Cannot connect to backend. Make sure Django server is running on port 8000.\n\nRun: cd backend && python manage.py runserver"
+        )
+      }
+    }
+
+    checkBackend()
+  }, [])
 
   const handleSubmit = async (handle: string) => {
+    if (!handle || handle.trim().length === 0) {
+      setError("Please enter a Codeforces handle")
+      return
+    }
+
+    if (handle.length > 32) {
+      setError("Handle must be 32 characters or less")
+      return
+    }
+
     setIsLoading(true)
     setError("")
     setRatingData(null)
@@ -23,7 +55,14 @@ export default function Home() {
       const data = await estimateRating(handle)
       setRatingData(data)
     } catch (err) {
-      setError("Failed to fetch rating data. Please try again.")
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred"
+      if (errorMessage.includes("User not found")) {
+        setError(`Handle "${handle}" not found on Codeforces. Please check the spelling.`)
+      } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network")) {
+        setError("Network error. Please check your connection and try again.")
+      } else {
+        setError(errorMessage || "Failed to fetch rating data. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -39,6 +78,19 @@ export default function Home() {
           <p className="text-sm text-muted-foreground hidden sm:block">Codeforces Rating Estimator</p>
         </div>
       </header>
+
+      {/* Backend Error Banner */}
+      {backendError && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-3">
+          <div className="max-w-3xl mx-auto flex gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-destructive">
+              <p className="font-medium">Backend Connection Issue</p>
+              <p className="text-xs mt-1 whitespace-pre-wrap">{backendError}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="py-12 md:py-16 text-center px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">Estimate your next rating</h2>
@@ -99,3 +151,4 @@ export default function Home() {
     </main>
   )
 }
+
